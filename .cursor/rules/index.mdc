@@ -1,0 +1,10 @@
+---
+description: DePhalanx product-layer boundaries
+alwaysApply: true
+---
+
+# DePhalanx Index
+
+- `DePhalanx` owns product-layer orchestration, mandate state, PhalanxLayer, and channel rendering.
+- It must not own raw signing, unrestricted contract execution, or direct Onchain OS bypasses.
+- Read the split design spec before changing repo boundaries.
