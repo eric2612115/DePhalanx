@@ -4,7 +4,7 @@ This folder is the **agent workspace root** for OpenClaw: put skills, prompts, a
 
 ## Do you need a separate “agent ↔ Telegram” token?
 
-**No.** Telegram only needs the **Bot API token** from `@BotFather` (`TEGRAM_BOT_TOKEN` / `channels.telegram.botToken`). That token is what authenticates your bot to Telegram; OpenClaw uses it inside the Gateway—there is no extra “bridge token” between the agent and Telegram for normal use.
+**No.** Telegram only needs the **Bot API token** from `@BotFather` (`TELEGRAM_BOT_TOKEN` / `channels.telegram.botToken`). That token is what authenticates your bot to Telegram; OpenClaw uses it inside the Gateway—there is no extra “bridge token” between the agent and Telegram for normal use.
 
 Optional, **different** secrets you may see:
 
@@ -23,6 +23,29 @@ See [Install](https://docs.openclaw.ai/install). You need Node **24** (recommend
 curl -fsSL https://openclaw.ai/install.sh | bash
 # or: npm install -g openclaw@latest
 ```
+
+## This workspace machine (setup done here)
+
+- OpenClaw CLI is installed globally (`npm install -g openclaw@latest`).
+- Gateway config lives at **`~/.openclaw/openclaw.json`** (not in git). Agent workspace path: **`/workspace/defiproject/openclaw/workspace`**.
+- Secrets for the daemon: **`~/.openclaw/.env`** (chmod 600). **`OPENCLAW_GATEWAY_TOKEN`** is already generated for you—**do not commit this file.**
+
+### What you must add in `~/.openclaw/.env`
+
+| Variable | Required | Notes |
+|----------|----------|--------|
+| **`OPENAI_API_KEY`** | **Yes** (for default model `openai/gpt-5.4`) | Get from OpenAI. If you use another provider instead, run `openclaw onboard` / `openclaw configure --section model` and adjust—then the env var name may differ (e.g. `ANTHROPIC_API_KEY`). |
+| **`TELEGRAM_BOT_TOKEN`** | **Yes** (for Telegram) | From `@BotFather`. |
+| **`OPENCLAW_GATEWAY_TOKEN`** | Already set | Local Control UI / CLI auth; keep as-is unless you rotate. |
+
+After editing `.env`, start the gateway (env is loaded automatically from `~/.openclaw/.env` when present):
+
+```bash
+openclaw gateway run
+# or: openclaw gateway
+```
+
+First Telegram DM: **`openclaw pairing list telegram`** then **`openclaw pairing approve telegram <CODE>`** (default `dmPolicy` is `pairing`).
 
 ## Wire this project as the agent workspace
 
