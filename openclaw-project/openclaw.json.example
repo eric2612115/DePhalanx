@@ -1,0 +1,25 @@
+{
+  // Copy to ~/.openclaw/openclaw.json (or merge) after setting env vars referenced below.
+  // Standalone project path: /Users/cass/DefiProject/openclaw-project/workspace
+  // Docs: https://docs.openclaw.ai/gateway/configuration
+  gateway: {
+    mode: "local",
+    bind: "loopback",
+    auth: { mode: "token", token: "${OPENCLAW_GATEWAY_TOKEN}" },
+  },
+  agents: {
+    defaults: {
+      workspace: "${OPENCLAW_PROJECT_WORKSPACE}",
+    },
+  },
+  session: {
+    dmScope: "per-channel-peer",
+  },
+  channels: {
+    telegram: {
+      enabled: true,
+      dmPolicy: "pairing",
+      groups: { "*": { requireMention: true } },
+    },
+  },
+}
