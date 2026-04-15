@@ -1,0 +1,25 @@
+{
+  // Copy to ~/.openclaw/openclaw.json (or merge) after setting env vars referenced below.
+  // Docs: https://docs.openclaw.ai/gateway/configuration
+  gateway: {
+    mode: "local",
+    bind: "loopback",
+    auth: { mode: "token", token: "${OPENCLAW_GATEWAY_TOKEN}" },
+  },
+  agents: {
+    defaults: {
+      workspace: "${DEFIPROJECT_OPENCLAW_WORKSPACE}",
+    },
+  },
+  session: {
+    dmScope: "per-channel-peer",
+  },
+  channels: {
+    telegram: {
+      enabled: true,
+      // Bot token via env TELEGRAM_BOT_TOKEN (default account). Do not commit real tokens.
+      dmPolicy: "pairing",
+      groups: { "*": { requireMention: true } },
+    },
+  },
+}
