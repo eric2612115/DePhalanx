@@ -33,10 +33,32 @@ describe("PhalanxLayer", () => {
     });
 
     expect(bundle.actions).toEqual([
-      { type: "deposit_aave", chain: "base", asset: "USDC", amount: "8" },
-      { type: "deposit_morpho", chain: "base", asset: "USDC", amount: "8" },
-      expect.objectContaining({ type: "request_uniswap_allocation_approval", chain: "base" }),
-      { type: "deposit_aave", chain: "xlayer", asset: "USDT", amount: "2" },
+      expect.objectContaining({
+        action: "executeRebalance",
+        target: "pool",
+        payload: expect.objectContaining({
+          operations: [
+            expect.objectContaining({
+              action: "deposit",
+              payload: expect.objectContaining({ chain: "base", token: "USDC", amount: "8", platformId: "aave-v3" }),
+            }),
+            expect.objectContaining({
+              action: "deposit",
+              payload: expect.objectContaining({ chain: "base", token: "USDC", amount: "8", platformId: "morpho-vaults" }),
+            }),
+          ],
+        }),
+      }),
+      expect.objectContaining({
+        action: "depositLpPosition",
+        target: "uniswap-v3",
+        payload: expect.objectContaining({ chain: "base", token: "USDC", tokenSecondary: "WETH" }),
+      }),
+      expect.objectContaining({
+        action: "deposit",
+        target: "pool",
+        payload: expect.objectContaining({ chain: "xlayer", token: "USDT", amount: "2", platformId: "aave-v3" }),
+      }),
     ]);
   });
 });

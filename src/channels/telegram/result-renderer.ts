@@ -1,3 +1,10 @@
-export function renderTelegramResult(input: { executionId: string; actionCount: number }): string {
-  return `Execution completed: ${input.executionId} (${input.actionCount} actions).`;
+export function renderTelegramResult(input: {
+  executionId: string;
+  status?: "completed" | "failed";
+  message?: string;
+}): string {
+  if (input.status === "failed") {
+    return `Execution stopped: ${input.message ?? "unknown failure"}.`;
+  }
+  return `Execution completed: ${input.executionId}.`;
 }

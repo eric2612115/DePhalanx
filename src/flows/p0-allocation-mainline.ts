@@ -1,48 +1,51 @@
 import type { MandateProfile } from "../mandate/types.js";
-import { OpenClawAdapter } from "../brain/openclaw-adapter.js";
+import type { ApprovalResponseIntent, OperatorIntent } from "../brain/intent-schema.js";
 import { PhalanxSkillClient } from "../bridge/phalanx-skill-client.js";
 import { filterOpportunities } from "../phalanx-layer/opportunity-filter.js";
 import { buildRiskPreferenceModel } from "../phalanx-layer/risk-preference-model.js";
 import { compileAllocationPlan } from "../phalanx-layer/action-compiler.js";
-import { queryOmRateOpportunities, type RawOmRateOpportunity } from "../omrate/omrate-client.js";
+import { queryOmRateOpportunities, type OmRateQueryMode, type RawOmRateOpportunity } from "../omrate/omrate-client.js";
 import { renderTelegramApproval } from "../channels/telegram/approval-renderer.js";
 import { renderTelegramResult } from "../channels/telegram/result-renderer.js";
-import { buildP0ProofArtifact } from "../replay/p0-proof.js";
 
-export interface P0MainlineInput {
-  readonly message: string;
-  readonly mandate: MandateProfile;
-  readonly opportunities: readonly RawOmRateOpportunity[];
-}
-
-export interface P0MainlineResult {
+export interface LiveP0TurnResult {
   readonly timeline: readonly string[];
-  readonly approvalPrompt: string;
-  readonly finalSummary: string;
-  readonly proof: ReturnType<typeof buildP0ProofArtifact>;
+  readonly outboundMessage: string;
+  readonly status: "pending_approval" | "completed" | "failed";
 }
 
-export async function runP0AllocationMainline(input: P0MainlineInput): Promise<P0MainlineResult> {
-  const timeline: string[] = [];
-  const adapter = new OpenClawAdapter();
-  const client = new PhalanxSkillClient({
-    executeBundle: async (bundle) => {
-      if (bundle.resume?.approved) {
-        return { status: "completed", executionId: "exec-approved" } as const;
-      }
-      return {
-        status: "pending_approval",
-        approvalId: "approval-uniswap",
-        resumeToken: "resume-uniswap",
-        message: "Uniswap allocation requires approval",
-      } as const;
-    },
+function renderFinalSummary(
+  result: Extract<Awaited<ReturnType<PhalanxSkillClient["execute"]>>, { status: "completed" | "failed" }>,
+): string {
+  if (result.status === "failed") {
+    return renderTelegramResult({
+      executionId: "exec-failed",
+      status: "failed",
+      message: result.message,
+    });
+  }
+  return renderTelegramResult({
+    executionId: result.executionId,
+    status: "completed",
   });
+}
 
-  await adapter.normalizeIncoming({ user_id: input.mandate.userId, text: input.message, channel: "telegram" });
-  timeline.push("intent_received");
-
-  const omrate = await queryOmRateOpportunities({ mode: "x402_optional", raw: input.opportunities });
+export async function runInitialLiveP0Turn(input: {
+  readonly intent: OperatorIntent;
+  readonly mandate: MandateProfile;
+  readonly client: PhalanxSkillClient;
+  readonly opportunities?: readonly RawOmRateOpportunity[];
+  readonly omRateBaseUrl?: string;
+  readonly omRatePath?: string;
+  readonly omRateMode?: OmRateQueryMode;
+}): Promise<LiveP0TurnResult> {
+  const timeline: string[] = ["intent_received"];
+  const omrate = await queryOmRateOpportunities({
+    mode: input.omRateMode ?? "x402_optional",
+    raw: input.opportunities,
+    baseUrl: input.omRateBaseUrl,
+    path: input.omRatePath,
+  });
   timeline.push("omrate_requested");
 
   const riskModel = buildRiskPreferenceModel(input.mandate);
@@ -54,43 +57,44 @@ export async function runP0AllocationMainline(input: P0MainlineInput): Promise<P
   });
   timeline.push("allocation_compiled");
 
-  const first = await client.execute({ actions: bundle.actions });
-  if (first.status !== "pending_approval") {
-    throw new Error("expected_pending_approval");
+  const first = await input.client.execute({ actions: bundle.actions });
+  if (first.status === "pending_approval") {
+    timeline.push("pending_approval_rendered");
+    return {
+      timeline,
+      status: "pending_approval",
+      outboundMessage: renderTelegramApproval({
+        message: first.message,
+        approvalId: first.approvalId,
+      }),
+    };
   }
 
-  const approvalPrompt = renderTelegramApproval({
-    protocol: "Uniswap",
-    chain: "base",
-    amount: "4",
-    asset: "USDC",
-  });
-  timeline.push("pending_approval_rendered");
-
-  const resumed = await client.resumePendingApproval({
-    approvalId: first.approvalId,
-    resumeToken: first.resumeToken,
-    approved: true,
-  });
-  if (resumed.status !== "completed") {
-    throw new Error("expected_completed_resume");
-  }
-  timeline.push("approval_resumed");
-
-  const finalSummary = renderTelegramResult({
-    executionId: resumed.executionId,
-    actionCount: bundle.actions.length,
-  });
   timeline.push("result_report_rendered");
-
   return {
     timeline,
-    approvalPrompt,
-    finalSummary,
-    proof: buildP0ProofArtifact({
-      timeline,
-      approvalPrompt,
-      finalSummary,
-    }),
+    status: first.status === "completed" ? "completed" : "failed",
+    outboundMessage: renderFinalSummary(first),
+  };
+}
+
+export async function runApprovalLiveP0Turn(input: {
+  readonly intent: ApprovalResponseIntent;
+  readonly client: PhalanxSkillClient;
+}): Promise<LiveP0TurnResult> {
+  const timeline = ["intent_received"];
+  const resumed = await input.client.resumePendingApproval({
+    approvalId: input.intent.approvalId,
+    resumeToken: input.intent.resumeToken,
+    approved: input.intent.approved,
+  });
+  if (resumed.status === "pending_approval") {
+    throw new Error("unexpected_pending_approval_on_resume");
+  }
+  timeline.push("approval_resumed", "result_report_rendered");
+  return {
+    timeline,
+    status: resumed.status === "completed" ? "completed" : "failed",
+    outboundMessage: renderFinalSummary(resumed),
   };
 }

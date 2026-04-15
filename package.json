@@ -8,9 +8,12 @@
     "build": "tsc",
     "test": "vitest run",
     "dev": "tsx src/index.ts",
-    "demo:p0": "tsx src/index.ts --demo-p0"
+    "smoke:live": "tsx scripts/smoke-live.ts"
   },
-  "dependencies": {},
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "dotenv": "^17.4.2"
+  },
   "devDependencies": {
     "@types/node": "^22.10.0",
     "tsx": "^4.19.2",

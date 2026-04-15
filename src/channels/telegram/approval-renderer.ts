@@ -1,5 +1,11 @@
-import { renderApprovalNarrative } from "../../phalanx-layer/approval-narrative.js";
-
-export function renderTelegramApproval(input: { protocol: string; chain: string; amount: string; asset: string }): string {
-  return renderApprovalNarrative(input);
+export function renderTelegramApproval(input: {
+  message: string;
+  approvalId: string;
+}): string {
+  return [
+    input.message,
+    "",
+    `Approval ID: ${input.approvalId}`,
+    `Reply \`approve ${input.approvalId}\` to continue, or \`reject ${input.approvalId}\` to cancel.`,
+  ].join("\n");
 }
