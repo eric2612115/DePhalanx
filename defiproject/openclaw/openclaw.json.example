@@ -1,5 +1,6 @@
 {
   // Copy to ~/.openclaw/openclaw.json (or merge) after setting env vars referenced below.
+  // Repo layout: clone/checkout so you have ~/DefiProject/defiproject/openclaw/workspace
   // Docs: https://docs.openclaw.ai/gateway/configuration
   gateway: {
     mode: "local",
