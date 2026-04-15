@@ -1,6 +1,6 @@
 {
   // Copy to ~/.openclaw/openclaw.json (or merge) after setting env vars referenced below.
-  // Repo layout: clone/checkout so you have ~/DefiProject/defiproject/openclaw/workspace
+  // Standalone project path: /Users/cass/DefiProject/openclaw-project/workspace
   // Docs: https://docs.openclaw.ai/gateway/configuration
   gateway: {
     mode: "local",
@@ -9,7 +9,7 @@
   },
   agents: {
     defaults: {
-      workspace: "${DEFIPROJECT_OPENCLAW_WORKSPACE}",
+      workspace: "${OPENCLAW_PROJECT_WORKSPACE}",
     },
   },
   session: {
@@ -18,7 +18,6 @@
   channels: {
     telegram: {
       enabled: true,
-      // Bot token via env TELEGRAM_BOT_TOKEN (default account). Do not commit real tokens.
       dmPolicy: "pairing",
       groups: { "*": { requireMention: true } },
     },
